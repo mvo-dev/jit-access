@@ -23,6 +23,7 @@ package com.google.solutions.jitaccess.web.rest;
 
 import com.google.common.base.Preconditions;
 import com.google.solutions.jitaccess.core.*;
+import com.google.solutions.jitaccess.core.auth.UserEmail;
 import com.google.solutions.jitaccess.core.catalog.*;
 import com.google.solutions.jitaccess.core.catalog.RequesterPrivilege.Status;
 import com.google.solutions.jitaccess.core.catalog.project.ActivationTypeFactory;
@@ -34,7 +35,7 @@ import com.google.solutions.jitaccess.web.LogAdapter;
 import com.google.solutions.jitaccess.web.LogEvents;
 import com.google.solutions.jitaccess.web.RuntimeEnvironment;
 import com.google.solutions.jitaccess.web.TokenObfuscator;
-import com.google.solutions.jitaccess.web.auth.UserPrincipal;
+import com.google.solutions.jitaccess.web.iap.IapPrincipal;
 import jakarta.enterprise.context.Dependent;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -146,12 +147,12 @@ public class ApiResource {
   @Path("policy")
   public @NotNull PolicyResponse getPolicy(
       @Context @NotNull SecurityContext securityContext) {
-    var iapPrincipal = (UserPrincipal) securityContext.getUserPrincipal();
+    var iapPrincipal = (IapPrincipal) securityContext.getUserPrincipal();
 
     var options = this.mpaCatalog.options();
     return new PolicyResponse(
         justificationPolicy.hint(),
-        iapPrincipal.getId(),
+        iapPrincipal.email(),
         ApplicationVersion.VERSION_STRING,
         (int) options.maxActivationDuration().toMinutes(),
         Math.min(60, (int) options.maxActivationDuration().toMinutes()));
@@ -167,10 +168,10 @@ public class ApiResource {
       @Context @NotNull SecurityContext securityContext) throws AccessException {
     Preconditions.checkNotNull(this.mpaCatalog, "iamPolicyCatalog");
 
-    var iapPrincipal = (UserPrincipal) securityContext.getUserPrincipal();
+    var iapPrincipal = (IapPrincipal) securityContext.getUserPrincipal();
 
     try {
-      var projects = this.mpaCatalog.listProjects(iapPrincipal.getId());
+      var projects = this.mpaCatalog.listScopes(iapPrincipal.email());
 
       this.logAdapter
           .newInfoEntry(
@@ -208,12 +209,12 @@ public class ApiResource {
         projectIdString != null && !projectIdString.trim().isEmpty(),
         "A projectId is required");
 
-    var iapPrincipal = (UserPrincipal) securityContext.getUserPrincipal();
+    var iapPrincipal = (IapPrincipal) securityContext.getUserPrincipal();
     var projectId = new ProjectId(projectIdString);
 
     try {
       var privileges = this.mpaCatalog.listRequesterPrivileges(
-          iapPrincipal.getId(),
+          iapPrincipal.email(),
           projectId);
 
       return new ProjectRolesResponse(
@@ -265,7 +266,7 @@ public class ApiResource {
         activationType.contains("PEER_APPROVAL(") || activationType.contains("EXTERNAL_APPROVAL("),
         "Invalid activationType. Must be either PEER_APPROVAL or EXTERNAL_APPROVAL.");
 
-    var iapPrincipal = (UserPrincipal) securityContext.getUserPrincipal();
+    var iapPrincipal = (IapPrincipal) securityContext.getUserPrincipal();
     var projectId = new ProjectId(projectIdString);
     var roleBinding = new RoleBinding(projectId, role);
 
@@ -277,10 +278,10 @@ public class ApiResource {
 
     try {
       var reviewers = this.mpaCatalog.listReviewers(
-          iapPrincipal.getId(),
+          iapPrincipal.email(),
           privilege);
 
-      assert !reviewers.contains(iapPrincipal.getId());
+      assert !reviewers.contains(iapPrincipal.email());
 
       return new ProjectRoleReviewersResponse(reviewers);
     } catch (Exception e) {
@@ -330,7 +331,7 @@ public class ApiResource {
         request.justification != null && request.justification.length() < 100,
         "The justification is too long");
 
-    var iapPrincipal = (UserPrincipal) securityContext.getUserPrincipal();
+    var iapPrincipal = (IapPrincipal) securityContext.getUserPrincipal();
     var projectId = new ProjectId(projectIdString);
 
     //
@@ -342,7 +343,7 @@ public class ApiResource {
       ActivationRequest<ProjectRoleBinding> activationRequest;
       try {
         activationRequest = this.projectRoleActivator.createActivationRequest(
-            iapPrincipal.getId(),
+            iapPrincipal.email(),
             Set.of(),
             new RequesterPrivilege<ProjectRoleBinding>(
                 new ProjectRoleBinding(new RoleBinding(projectId.getFullResourceName(), role)),
@@ -360,7 +361,7 @@ public class ApiResource {
                 LogEvents.API_ACTIVATE_ROLE,
                 String.format(
                     "Received invalid activation request from user '%s' for role '%s' on '%s': %s",
-                    iapPrincipal.getId(),
+                    iapPrincipal.email(),
                     role,
                     projectId.getFullResourceName(),
                     Exceptions.getFullMessage(e)))
@@ -400,7 +401,7 @@ public class ApiResource {
                 LogEvents.API_ACTIVATE_ROLE,
                 String.format(
                     "User %s activated roles %s on '%s' for themselves for %d minutes",
-                    iapPrincipal.getId(),
+                    iapPrincipal.email(),
                     activationRequest.requesterPrivilege().roleBinding().role(),
                     projectId.getFullResourceName(),
                     requestedRoleBindingDuration.toMinutes()))
@@ -414,7 +415,7 @@ public class ApiResource {
                 LogEvents.API_ACTIVATE_ROLE,
                 String.format(
                     "User %s failed to activate roles %s on '%s' for themselves for %d minutes: %s",
-                    iapPrincipal.getId(),
+                    iapPrincipal.email(),
                     activationRequest.requesterPrivilege().roleBinding().role(),
                     projectId.getFullResourceName(),
                     requestedRoleBindingDuration.toMinutes(),
@@ -433,7 +434,7 @@ public class ApiResource {
     }
 
     return new ActivationStatusResponse(
-        iapPrincipal.getId(),
+        iapPrincipal.email(),
         requests,
         RequesterPrivilege.Status.ACTIVE);
   }
@@ -496,7 +497,7 @@ public class ApiResource {
             this.runtimeEnvironment.isDebugModeEnabled(),
         "The multi-party approval feature is not available because the server-side configuration is incomplete");
 
-    var iapPrincipal = (UserPrincipal) securityContext.getUserPrincipal();
+    var iapPrincipal = (IapPrincipal) securityContext.getUserPrincipal();
     var projectId = new ProjectId(projectIdString);
     var roleBinding = new RoleBinding(projectId, request.role);
 
@@ -508,7 +509,7 @@ public class ApiResource {
 
     try {
       activationRequest = this.projectRoleActivator.createActivationRequest(
-          iapPrincipal.getId(),
+          iapPrincipal.email(),
           request.reviewers.stream().map(email -> new UserEmail(email)).collect(Collectors.toSet()),
           new RequesterPrivilege<>(new ProjectRoleBinding(roleBinding), roleBinding.role(),
               ActivationTypeFactory.createFromName(request.activationType), Status.INACTIVE),
@@ -521,7 +522,7 @@ public class ApiResource {
               LogEvents.API_ACTIVATE_ROLE,
               String.format(
                   "Received invalid activation request from user '%s' for role '%s' on '%s': %s",
-                  iapPrincipal.getId(),
+                  iapPrincipal.email(),
                   roleBinding,
                   projectId.getFullResourceName(),
                   Exceptions.getFullMessage(e)))
@@ -585,7 +586,7 @@ public class ApiResource {
               LogEvents.API_REQUEST_ROLE,
               String.format(
                   "User %s requested role '%s' on '%s' for %d minutes",
-                  iapPrincipal.getId(),
+                  iapPrincipal.email(),
                   roleBinding.role(),
                   roleBinding.fullResourceName(),
                   requestedRoleBindingDuration.toMinutes()))
@@ -594,7 +595,7 @@ public class ApiResource {
           .write();
 
       return new ActivationStatusResponse(
-          iapPrincipal.getId(),
+          iapPrincipal.email(),
           List.of(activationRequest),
           RequesterPrivilege.Status.ACTIVATION_PENDING);
     } catch (Exception e) {
@@ -603,7 +604,7 @@ public class ApiResource {
               LogEvents.API_REQUEST_ROLE,
               String.format(
                   "User %s failed to request role '%s' on '%s' for %d minutes: %s",
-                  iapPrincipal.getId(),
+                  iapPrincipal.email(),
                   roleBinding.role(),
                   roleBinding.fullResourceName(),
                   requestedRoleBindingDuration.toMinutes(),
@@ -639,20 +640,20 @@ public class ApiResource {
         "An activation token is required");
 
     var activationToken = TokenObfuscator.decode(obfuscatedActivationToken);
-    var iapPrincipal = (UserPrincipal) securityContext.getUserPrincipal();
+    var iapPrincipal = (IapPrincipal) securityContext.getUserPrincipal();
 
     try {
       var activationRequest = this.tokenSigner.verify(
           this.projectRoleActivator.createTokenConverter(),
           activationToken);
 
-      if (!activationRequest.requestingUser().equals(iapPrincipal.getId()) &&
-          !activationRequest.reviewers().contains(iapPrincipal.getId())) {
+      if (!activationRequest.requestingUser().equals(iapPrincipal.email()) &&
+          !activationRequest.reviewers().contains(iapPrincipal.email())) {
         throw new AccessDeniedException("The calling user is not authorized to access this approval request");
       }
 
       return new ActivationStatusResponse(
-          iapPrincipal.getId(),
+          iapPrincipal.email(),
           List.of(activationRequest),
           RequesterPrivilege.Status.ACTIVATION_PENDING); // TODO(later): Could check if's been activated
                                                          // already.
@@ -689,7 +690,7 @@ public class ApiResource {
         "An activation token is required");
 
     var activationToken = TokenObfuscator.decode(obfuscatedActivationToken);
-    var iapPrincipal = (UserPrincipal) securityContext.getUserPrincipal();
+    var iapPrincipal = (IapPrincipal) securityContext.getUserPrincipal();
 
     ActivationRequest<ProjectRoleBinding> activationRequest;
     try {
@@ -713,7 +714,7 @@ public class ApiResource {
 
     try {
       var activation = this.projectRoleActivator.approve(
-          iapPrincipal.getId(),
+          iapPrincipal.email(),
           activationRequest);
 
       assert activation != null;
@@ -726,7 +727,7 @@ public class ApiResource {
         service.sendNotification(new ActivationApprovedNotification(
             projectId,
             activation,
-            iapPrincipal.getId(),
+            iapPrincipal.email(),
             createActivationRequestUrl(uriInfo, projectId, activationToken)));
       }
 
@@ -738,7 +739,7 @@ public class ApiResource {
               LogEvents.API_ACTIVATE_ROLE,
               String.format(
                   "User %s approved role '%s' on '%s' for %s",
-                  iapPrincipal.getId(),
+                  iapPrincipal.email(),
                   roleBinding.role(),
                   roleBinding.fullResourceName(),
                   activationRequest.requestingUser()))
@@ -746,7 +747,7 @@ public class ApiResource {
           .write();
 
       return new ActivationStatusResponse(
-          iapPrincipal.getId(),
+          iapPrincipal.email(),
           List.of(activationRequest),
           RequesterPrivilege.Status.ACTIVE);
     } catch (Exception e) {
@@ -755,7 +756,7 @@ public class ApiResource {
               LogEvents.API_ACTIVATE_ROLE,
               String.format(
                   "User %s failed to activate role '%s' on '%s' for %s: %s",
-                  iapPrincipal.getId(),
+                  iapPrincipal.email(),
                   roleBinding.role(),
                   roleBinding.fullResourceName(),
                   activationRequest.requestingUser(),
@@ -931,7 +932,7 @@ public class ApiResource {
     public final @NotNull List<ActivationStatus> items;
 
     private ActivationStatusResponse(
-        UserId caller,
+        UserEmail caller,
         @NotNull List<ActivationRequest<ProjectRoleBinding>> requests,
         RequesterPrivilege.Status status) {
       Preconditions.checkNotNull(requests);

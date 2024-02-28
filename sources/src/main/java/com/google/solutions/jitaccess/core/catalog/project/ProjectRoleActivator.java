@@ -26,6 +26,7 @@ import com.google.api.services.cloudresourcemanager.v3.model.Binding;
 import com.google.common.base.Preconditions;
 import com.google.solutions.jitaccess.cel.TemporaryIamCondition;
 import com.google.solutions.jitaccess.core.*;
+import com.google.solutions.jitaccess.core.auth.UserEmail;
 import com.google.solutions.jitaccess.core.catalog.*;
 import com.google.solutions.jitaccess.core.clients.ResourceManagerClient;
 import jakarta.enterprise.context.Dependent;
@@ -42,17 +43,16 @@ import java.util.stream.Collectors;
  * Activator for project roles.
  */
 @Dependent
-public class ProjectRoleActivator extends RequesterPrivilegeActivator<ProjectRoleBinding> {
+public class ProjectRoleActivator extends RequesterPrivilegeActivator<ProjectRoleBinding, ProjectId> {
   private final @NotNull ResourceManagerClient resourceManagerClient;
 
   public ProjectRoleActivator(
-      RequesterPrivilegeCatalog<ProjectRoleBinding> catalog,
+      RequesterPrivilegeCatalog<ProjectRoleBinding, ProjectId> catalog,
       @NotNull ResourceManagerClient resourceManagerClient,
-      JustificationPolicy policy) {
+      @NotNull JustificationPolicy policy) {
     super(catalog, policy);
 
     Preconditions.checkNotNull(resourceManagerClient, "resourceManagerClient");
-
     this.resourceManagerClient = resourceManagerClient;
   }
 

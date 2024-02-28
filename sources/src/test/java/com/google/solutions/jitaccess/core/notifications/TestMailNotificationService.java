@@ -22,7 +22,7 @@
 package com.google.solutions.jitaccess.core.notifications;
 
 import com.google.solutions.jitaccess.core.MailAddressFormatter;
-import com.google.solutions.jitaccess.core.UserEmail;
+import com.google.solutions.jitaccess.core.auth.UserEmail;
 import com.google.solutions.jitaccess.core.clients.SmtpClient;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;

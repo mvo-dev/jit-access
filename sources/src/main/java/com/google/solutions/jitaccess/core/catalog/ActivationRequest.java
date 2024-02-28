@@ -22,7 +22,7 @@
 package com.google.solutions.jitaccess.core.catalog;
 
 import com.google.common.base.Preconditions;
-import com.google.solutions.jitaccess.core.UserEmail;
+import com.google.solutions.jitaccess.core.auth.UserEmail;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
@@ -135,7 +135,7 @@ public class ActivationRequest<TPrivilegeId extends PrivilegeId> {
   /**
    * @return type of activation.
    */
-  public ActivationType activationType() {
+  public @NotNull ActivationType activationType() {
     return this.activationType;
   }
 

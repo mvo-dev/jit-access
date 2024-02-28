@@ -22,15 +22,13 @@
 package com.google.solutions.jitaccess.core.catalog.project;
 
 import com.google.api.services.cloudasset.v1.model.*;
-import com.google.api.services.directory.model.Privilege;
 import com.google.solutions.jitaccess.cel.TemporaryIamCondition;
-import com.google.solutions.jitaccess.core.ProjectId;
+import com.google.solutions.jitaccess.core.catalog.ProjectId;
 import com.google.solutions.jitaccess.core.RoleBinding;
-import com.google.solutions.jitaccess.core.UserEmail;
+import com.google.solutions.jitaccess.core.auth.UserEmail;
 import com.google.solutions.jitaccess.core.catalog.ExternalApproval;
 import com.google.solutions.jitaccess.core.catalog.PeerApproval;
 import com.google.solutions.jitaccess.core.catalog.RequesterPrivilege;
-import com.google.solutions.jitaccess.core.catalog.ActivationType;
 import com.google.solutions.jitaccess.core.catalog.SelfApproval;
 import com.google.solutions.jitaccess.core.clients.PolicyAnalyzerClient;
 import com.google.solutions.jitaccess.core.clients.ResourceManagerClient;

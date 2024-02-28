@@ -29,8 +29,10 @@ import com.google.api.services.directory.model.Group;
 import com.google.api.services.directory.model.Member;
 import com.google.solutions.jitaccess.cel.TemporaryIamCondition;
 import com.google.solutions.jitaccess.core.*;
+import com.google.solutions.jitaccess.core.auth.UserEmail;
 import com.google.solutions.jitaccess.core.catalog.ExternalApproval;
 import com.google.solutions.jitaccess.core.catalog.PeerApproval;
+import com.google.solutions.jitaccess.core.catalog.ProjectId;
 import com.google.solutions.jitaccess.core.catalog.RequesterPrivilege;
 import com.google.solutions.jitaccess.core.catalog.SelfApproval;
 import com.google.solutions.jitaccess.core.clients.AssetInventoryClient;
@@ -38,7 +40,6 @@ import com.google.solutions.jitaccess.core.clients.DirectoryGroupsClient;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.io.IOException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.EnumSet;
@@ -136,49 +137,6 @@ public class TestAssetInventoryRepository {
                             reviewerBindingOtherTopic,
                             reviewerBindingNoTopic)))));
     return caiClient;
-  }
-
-  // ---------------------------------------------------------------------------
-  // awaitAndRethrow.
-  // ---------------------------------------------------------------------------
-
-  @Test
-  public void whenFutureThrowsIoException_ThenAwaitAndRethrowPropagatesException() {
-    var future = ThrowingCompletableFuture.<String>submit(
-        () -> {
-          throw new IOException("IO!");
-        },
-        new SynchronousExecutor());
-
-    assertThrows(
-        IOException.class,
-        () -> AssetInventoryRepository.awaitAndRethrow(future));
-  }
-
-  @Test
-  public void whenFutureThrowsAccessException_ThenAwaitAndRethrowPropagatesException() {
-    var future = ThrowingCompletableFuture.<String>submit(
-        () -> {
-          throw new AccessDeniedException("Access!");
-        },
-        new SynchronousExecutor());
-
-    assertThrows(
-        AccessException.class,
-        () -> AssetInventoryRepository.awaitAndRethrow(future));
-  }
-
-  @Test
-  public void whenFutureThrowsOtherException_ThenAwaitAndRethrowWrapsException() {
-    var future = ThrowingCompletableFuture.<String>submit(
-        () -> {
-          throw new RuntimeException("Runtime!");
-        },
-        new SynchronousExecutor());
-
-    assertThrows(
-        IOException.class,
-        () -> AssetInventoryRepository.awaitAndRethrow(future));
   }
 
   // ---------------------------------------------------------------------------

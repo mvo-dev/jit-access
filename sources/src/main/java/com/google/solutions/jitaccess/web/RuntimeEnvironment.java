@@ -33,7 +33,7 @@ import com.google.auth.oauth2.ImpersonatedCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import com.google.solutions.jitaccess.core.ApplicationVersion;
 import com.google.solutions.jitaccess.core.MailAddressRegexFormatter;
-import com.google.solutions.jitaccess.core.UserEmail;
+import com.google.solutions.jitaccess.core.auth.UserEmail;
 import com.google.solutions.jitaccess.core.catalog.RegexJustificationPolicy;
 import com.google.solutions.jitaccess.core.catalog.TokenSigner;
 import com.google.solutions.jitaccess.core.catalog.project.AssetInventoryRepository;

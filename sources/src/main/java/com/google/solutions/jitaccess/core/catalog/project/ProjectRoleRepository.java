@@ -24,13 +24,13 @@ package com.google.solutions.jitaccess.core.catalog.project;
 import com.google.common.base.Preconditions;
 import com.google.solutions.jitaccess.cel.TimeSpan;
 import com.google.solutions.jitaccess.core.AccessException;
-import com.google.solutions.jitaccess.core.ProjectId;
-import com.google.solutions.jitaccess.core.UserEmail;
+import com.google.solutions.jitaccess.core.auth.UserEmail;
 import com.google.solutions.jitaccess.core.catalog.RequesterPrivilege;
 import com.google.solutions.jitaccess.core.catalog.RequesterPrivilegeSet;
 import com.google.solutions.jitaccess.core.catalog.ActivationType;
 import com.google.solutions.jitaccess.core.catalog.NoActivation;
 import com.google.solutions.jitaccess.core.catalog.PrivilegeId;
+import com.google.solutions.jitaccess.core.catalog.ProjectId;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -161,7 +161,8 @@ public abstract class ProjectRoleRepository {
     return new RequesterPrivilegeSet<>(current, expired, warnings);
   }
 
-  record ActivatedRequesterPrivilege<TId>(TId privilegeId, TimeSpan validity) {
+  record ActivatedRequesterPrivilege<TId>(TId privilegeId, TimeSpan validity) { // TODO: rename to
+                                                                                // ActiveRequesterPrivilege, id()
     public ActivatedRequesterPrivilege {
       Preconditions.checkNotNull(privilegeId, "privilegeId");
       Preconditions.checkNotNull(validity, "validity");

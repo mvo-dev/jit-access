@@ -22,14 +22,16 @@
 package com.google.solutions.jitaccess.core.catalog;
 
 import com.google.solutions.jitaccess.core.AccessException;
-import com.google.solutions.jitaccess.core.UserEmail;
+import com.google.solutions.jitaccess.core.auth.UserEmail;
+import com.google.solutions.jitaccess.core.catalog.project.ProjectRoleBinding;
 
 import java.io.IOException;
+import java.util.SortedSet;
 
 /**
  * A catalog of requester privileges that can be browsed by the user.
  */
-public interface RequesterPrivilegeCatalog<TPrivilegeId extends PrivilegeId> {
+public interface RequesterPrivilegeCatalog<TPrivilegeId extends PrivilegeId, TScopeId extends ResourceId> {
   /**
    * Verify if a user is allowed to make the given request.
    */
@@ -42,4 +44,24 @@ public interface RequesterPrivilegeCatalog<TPrivilegeId extends PrivilegeId> {
   void verifyUserCanApprove(
       UserEmail approvingUser,
       ActivationRequest<TPrivilegeId> request) throws AccessException, IOException;
+
+  /**
+   * List scopes that the user has any privileges for.
+   */
+  SortedSet<TScopeId> listScopes(
+      UserEmail user) throws AccessException, IOException;
+
+  /**
+   * List available reviewers for (MPA-) activating a privilege.
+   */
+  SortedSet<UserEmail> listReviewers(
+      UserEmail requestingUser,
+      RequesterPrivilege<TPrivilegeId> privilege) throws AccessException, IOException;
+
+  /**
+   * List available privileges.
+   */
+  RequesterPrivilegeSet<TPrivilegeId> listRequesterPrivileges(
+      UserEmail user,
+      TScopeId scope) throws AccessException, IOException;
 }

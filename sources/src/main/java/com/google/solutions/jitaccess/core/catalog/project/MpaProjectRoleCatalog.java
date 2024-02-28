@@ -25,8 +25,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.solutions.jitaccess.core.AccessDeniedException;
 import com.google.solutions.jitaccess.core.AccessException;
-import com.google.solutions.jitaccess.core.ProjectId;
-import com.google.solutions.jitaccess.core.UserEmail;
+import com.google.solutions.jitaccess.core.catalog.ProjectId;
+import com.google.solutions.jitaccess.core.auth.UserEmail;
 import com.google.solutions.jitaccess.core.catalog.*;
 import com.google.solutions.jitaccess.core.clients.ResourceManagerClient;
 import jakarta.inject.Singleton;
@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
  * activation for project role-based privileges.
  */
 @Singleton
-public class MpaProjectRoleCatalog extends ProjectRoleCatalog {
+public class MpaProjectRoleCatalog implements RequesterPrivilegeCatalog<ProjectRoleBinding, ProjectId> {
   private final @NotNull ProjectRoleRepository repository;
   private final @NotNull ResourceManagerClient resourceManagerClient;
   private final @NotNull Options options;
@@ -91,8 +91,8 @@ public class MpaProjectRoleCatalog extends ProjectRoleCatalog {
   }
 
   void verifyUserCanActivateRequesterPrivileges(
-      UserEmail user,
-      ProjectId projectId,
+      @NotNull UserEmail user,
+      @NotNull ProjectId projectId,
       @NotNull ActivationType activationType,
       @NotNull Collection<ProjectRoleBinding> privileges) throws AccessException, IOException {
     // Verify that the user has eligible role bindings
@@ -165,7 +165,7 @@ public class MpaProjectRoleCatalog extends ProjectRoleCatalog {
   // ---------------------------------------------------------------------------
 
   @Override
-  public SortedSet<ProjectId> listProjects(
+  public SortedSet<ProjectId> listScopes(
       UserEmail user) throws AccessException, IOException {
     if (Strings.isNullOrEmpty(this.options.availableProjectsQuery)) {
       //
